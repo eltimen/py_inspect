@@ -9,16 +9,19 @@ from PyQt5.QtGui import QStandardItem
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QGridLayout
+from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtWidgets import QComboBox
+from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QTreeView
 from PyQt5.QtWidgets import QTableView
+import psutil
 import sys
 import warnings
 
 warnings.simplefilter("ignore", UserWarning)
 sys.coinit_flags = 2
-from pywinauto import backend
+from pywinauto import backend, Application
 
 
 def main():
@@ -60,6 +63,29 @@ class MyWindow(QWidget):
         self.mainLayout.addWidget(self.backendLabel, 0, 0, 1, 1)
         self.mainLayout.addWidget(self.comboBox, 0, 1, 1, 1)
 
+        self.processComboBox = QComboBox()
+        self.processComboBox.setMouseTracking(False)
+        self.processComboBox.setEnabled(False)
+        self.__init_process_list()
+
+        self.processRefreshButton = QPushButton("Refresh")
+        self.processRefreshButton.setEnabled(False)
+        self.processRefreshButton.clicked.connect(self.__init_process_list)
+
+        self.injectButton = QPushButton("Inject!")
+        self.injectButton.setEnabled(False)
+        self.injectButton.clicked.connect(self.__show_process_tree)
+
+        self.current_application = None
+
+        # Add widgets related to process-specific backends
+        self.processButtonsLayout = QHBoxLayout()
+        self.processButtonsLayout.addWidget(self.processRefreshButton)
+        self.processButtonsLayout.addWidget(self.injectButton)
+        self.mainLayout.addWidget(self.processComboBox, 1, 0, 1, 1)
+        self.mainLayout.addLayout(self.processButtonsLayout, 1, 1, 1, 1)
+
+
         self.tree_view = QTreeView()
         self.tree_view.setColumnWidth(0, 150)
 
@@ -71,12 +97,29 @@ class MyWindow(QWidget):
         self.comboBox.activated[str].connect(self.__show_tree)
 
         # Add center widgets to main window
-        self.mainLayout.addWidget(self.tree_view, 1, 0, 1, 1)
-        self.mainLayout.addWidget(self.table_view, 1, 1, 1, 1)
+        self.mainLayout.addWidget(self.tree_view, 2, 0, 1, 1)
+        self.mainLayout.addWidget(self.table_view, 2, 1, 1, 1)
 
         self.setLayout(self.mainLayout)
         geometry = self.settings.value('Geometry', bytes('', 'utf-8'))
         self.restoreGeometry(geometry)
+
+    def __init_process_list(self):
+        for proc in psutil.process_iter():
+            self.processComboBox.addItem('{} ({})'.format(proc.name(), proc.pid), proc.pid)
+
+    def __show_process_tree(self):
+        _pid = self.processComboBox.currentData()
+        _backend = self.comboBox.currentText()
+
+        self.current_application = Application(backend=_backend).connect(pid=_pid)
+
+        self.element_info \
+            = backend.registry.backends[_backend].element_info_class(pid=_pid)
+        self.tree_model = MyTreeModel(self.element_info, _backend)
+        self.tree_model.setHeaderData(0, Qt.Horizontal, 'Controls')
+        self.tree_view.setModel(self.tree_model)
+        self.tree_view.clicked.connect(self.__show_property)
 
     def __initialize_calc(self, _backend='uia'):
         self.element_info \
@@ -88,7 +131,19 @@ class MyWindow(QWidget):
 
     def __show_tree(self, text):
         backend = text
-        self.__initialize_calc(backend)
+        if backend == 'wpf':
+            self.processRefreshButton.setEnabled(True)
+            self.processComboBox.setEnabled(True)
+            self.injectButton.setEnabled(True)
+
+            self.tree_view.setModel(None)
+            self.table_view.setModel(None)
+        else:
+            self.processRefreshButton.setEnabled(False)
+            self.processComboBox.setEnabled(False)
+            self.injectButton.setEnabled(False)
+
+            self.__initialize_calc(backend)
 
     def __show_property(self, index=None):
         data = index.data()
@@ -149,7 +204,7 @@ class MyTreeModel(QStandardItemModel):
                       ] if (self.backend == 'win32') else []
 
         props_uia = [
-                        ['automation_id', str(element_info.automation_id)],
+                        ['auto_id', str(element_info.auto_id)],
                         ['control_type', str(element_info.control_type)],
                         ['element', str(element_info.element)],
                         ['framework_id', str(element_info.framework_id)],
