@@ -79,12 +79,11 @@ class MyWindow(QWidget):
         self.current_application = None
 
         # Add widgets related to process-specific backends
-        self.processButtonsLayout = QHBoxLayout()
-        self.processButtonsLayout.addWidget(self.processRefreshButton)
-        self.processButtonsLayout.addWidget(self.injectButton)
-        self.mainLayout.addWidget(self.processComboBox, 1, 0, 1, 1)
-        self.mainLayout.addLayout(self.processButtonsLayout, 1, 1, 1, 1)
-
+        self.processSelectorLayout = QHBoxLayout()
+        self.processSelectorLayout.addWidget(self.processComboBox)
+        self.processSelectorLayout.addWidget(self.processRefreshButton)
+        self.mainLayout.addLayout(self.processSelectorLayout, 1, 0, 1, 1)
+        self.mainLayout.addWidget(self.injectButton, 1, 1, 1, 1)
 
         self.tree_view = QTreeView()
         self.tree_view.setColumnWidth(0, 150)
