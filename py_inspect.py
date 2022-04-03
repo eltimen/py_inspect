@@ -4,9 +4,9 @@ from PyQt5.QtCore import QSettings
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QAbstractTableModel
 from PyQt5.QtCore import QVariant
-from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtGui import QStandardItemModel, QValidator
 from PyQt5.QtGui import QStandardItem
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QCompleter
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QHBoxLayout
@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QTreeView
 from PyQt5.QtWidgets import QTableView
 import psutil
+import re
 import sys
 import warnings
 
@@ -66,6 +67,11 @@ class MyWindow(QWidget):
         self.processComboBox = QComboBox()
         self.processComboBox.setMouseTracking(False)
         self.processComboBox.setEnabled(False)
+        self.processComboBox.setEditable(True)
+        self.processComboBox.setInsertPolicy(QComboBox.NoInsert)
+        self.processComboBox.setMaxVisibleItems(30)
+        self.processComboBox.setValidator(ComboBoxValidator(self.processComboBox))
+
         self.__init_process_list()
 
         self.processRefreshButton = QPushButton("Refresh")
@@ -104,10 +110,18 @@ class MyWindow(QWidget):
         self.restoreGeometry(geometry)
 
     def __init_process_list(self):
+        process_list = []
         for proc in psutil.process_iter():
-            self.processComboBox.addItem('{} ({})'.format(proc.name(), proc.pid), proc.pid)
+            process_string = '{} ({})'.format(proc.name(), proc.pid)
+            process_list.append(process_string)
+            self.processComboBox.addItem(process_string, proc.pid)
+        completer = QCompleter(process_list)
+        completer.setCaseSensitivity(Qt.CaseInsensitive)
+        completer.setCompletionMode(QCompleter.InlineCompletion)
+        self.processComboBox.setCompleter(completer)
 
     def __show_process_tree(self):
+        print(self.processComboBox.currentText(), self.processComboBox.currentData())
         _pid = self.processComboBox.currentData()
         _backend = self.comboBox.currentText()
 
@@ -239,6 +253,19 @@ class MyTableModel(QAbstractTableModel):
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
             return self.header_labels[section]
         return QAbstractTableModel.headerData(self, section, orientation, role)
+
+
+class ComboBoxValidator(QValidator):
+    def validate(self, input, pos):
+        if input == '':
+            return QValidator.Intermediate, input, pos
+        combobox = self.parent()
+        for i in range(combobox.count()):
+            if combobox.itemText(i) == input:
+                return QValidator.Acceptable, input, pos
+            elif bool(re.match('^'+re.escape(input), combobox.itemText(i), re.I)):
+                return QValidator.Intermediate, input, pos
+        return QValidator.Invalid, input, pos
 
 
 if __name__ == "__main__":
