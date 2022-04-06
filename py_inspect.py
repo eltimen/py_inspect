@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QLocale
+from PyQt5.QtCore import QLocale, QSortFilterProxyModel
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtCore import QSettings
 from PyQt5.QtCore import Qt
@@ -64,13 +64,9 @@ class MyWindow(QWidget):
         self.mainLayout.addWidget(self.backendLabel, 0, 0, 1, 1)
         self.mainLayout.addWidget(self.comboBox, 0, 1, 1, 1)
 
-        self.processComboBox = QComboBox()
-        self.processComboBox.setMouseTracking(False)
+        self.processComboBox = FilterComboBox()
         self.processComboBox.setEnabled(False)
-        self.processComboBox.setEditable(True)
-        self.processComboBox.setInsertPolicy(QComboBox.NoInsert)
         self.processComboBox.setMaxVisibleItems(30)
-        self.processComboBox.setValidator(ComboBoxValidator(self.processComboBox))
 
         self.__init_process_list()
 
@@ -115,13 +111,8 @@ class MyWindow(QWidget):
             process_string = '{} ({})'.format(proc.name(), proc.pid)
             process_list.append(process_string)
             self.processComboBox.addItem(process_string, proc.pid)
-        completer = QCompleter(process_list)
-        completer.setCaseSensitivity(Qt.CaseInsensitive)
-        completer.setCompletionMode(QCompleter.InlineCompletion)
-        self.processComboBox.setCompleter(completer)
 
     def __show_process_tree(self):
-        print(self.processComboBox.currentText(), self.processComboBox.currentData())
         _pid = self.processComboBox.currentData()
         _backend = self.comboBox.currentText()
 
@@ -224,6 +215,15 @@ class MyTreeModel(QStandardItemModel):
                         ['runtime_id', str(element_info.runtime_id)]
                     ] if (self.backend == 'uia') else []
 
+        props_wpf = [
+            ['auto_id', str(element_info.auto_id)],
+            ['control_type', str(element_info.control_type)],
+            ['parent', str(element_info.parent)],
+            ['framework_id', str(element_info.framework_id)],
+            ['runtime_id', str(element_info.runtime_id)]
+        ] if (self.backend == 'wpf') else []
+
+        props.extend(props_wpf)
         props.extend(props_uia)
         props.extend(props_win32)
         node_dict = {self.__node_name(element_info): props}
@@ -266,6 +266,37 @@ class ComboBoxValidator(QValidator):
             elif bool(re.match('^'+re.escape(input), combobox.itemText(i), re.I)):
                 return QValidator.Intermediate, input, pos
         return QValidator.Invalid, input, pos
+
+
+class FilterComboBox(QComboBox):
+    # based on https://stackoverflow.com/a/50639066/
+    def __init__(self, parent=None):
+        super(FilterComboBox, self).__init__(parent)
+
+        self.setFocusPolicy(Qt.StrongFocus)
+        self.setEditable(True)
+
+        # add a filter model to filter matching items
+        self.pFilterModel = QSortFilterProxyModel(self)
+        self.pFilterModel.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self.pFilterModel.setSourceModel(self.model())
+
+        # add a completer, which uses the filter model
+        self.completer = QCompleter(self.pFilterModel, self)
+        # always show all (filtered) completions
+        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.setCompleter(self.completer)
+
+        # connect signals
+        self.lineEdit().textEdited.connect(self.pFilterModel.setFilterFixedString)
+        self.completer.activated.connect(self.on_completer_activated)
+
+    # on selection of an item from the completer, select the corresponding item from combobox
+    def on_completer_activated(self, text):
+        if text:
+            index = self.findText(text)
+            self.setCurrentIndex(index)
+            self.activated[str].emit(self.itemText(index))
 
 
 if __name__ == "__main__":
