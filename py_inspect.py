@@ -447,6 +447,8 @@ class MyWindow(QWidget):
         self.restoreGeometry(geometry)
 
     def __initialize_calc(self, _backend='uia'):
+        if sys.platform == 'darwin':
+            _backend = 'ax'
         self.element_info \
             = backend.registry.backends[_backend].element_info_class()
         self.tree_model = MyTreeModel(self.element_info, _backend)
@@ -698,16 +700,25 @@ class MyTreeModel(QStandardItemModel):
 
     def __generate_props_dict(self, element_info):
         props = [
-            ['control_id', str(element_info.control_id)],
-            ['class_name', str(element_info.class_name)],
-            ['enabled', str(element_info.enabled)],
-            ['handle', str(element_info.handle)],
-            ['name', str(element_info.name)],
-            ['process_id', str(element_info.process_id)],
-            ['rectangle', str(element_info.rectangle)],
-            ['rich_text', str(element_info.rich_text)],
-            ['visible', str(element_info.visible)]
-        ]
+                    ['control_id', str(element_info.control_id)],
+                    ['class_name', str(element_info.class_name)],
+                    ['enabled', str(element_info.enabled)],
+                    ['name', str(element_info.name)],
+                    ['process_id', str(element_info.process_id)],
+                    ['rectangle', str(element_info.rectangle)],
+                    ['rich_text', str(element_info.rich_text)],
+                    ['visible', str(element_info.visible)]
+                ] if (self.backend == 'ax') else [
+                    ['control_id', str(element_info.control_id)],
+                    ['class_name', str(element_info.class_name)],
+                    ['enabled', str(element_info.enabled)],
+                    ['handle', str(element_info.handle)],
+                    ['name', str(element_info.name)],
+                    ['process_id', str(element_info.process_id)],
+                    ['rectangle', str(element_info.rectangle)],
+                    ['rich_text', str(element_info.rich_text)],
+                    ['visible', str(element_info.visible)]
+                ]
 
         props_win32 = [
         ] if (self.backend == 'win32') else []
