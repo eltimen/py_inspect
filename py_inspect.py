@@ -563,18 +563,18 @@ class MyWindow(QWidget):
         window = path[len(path)-1]
         path = path[:-1]
         window_props=''
-        if window.name != '' and window.name != None:
-            window_props += 'name="' + str(window.name) + '", '
-        if window.class_name != '' and window.class_name != None:
-            window_props += 'class_name="' + str(window.class_name) + '", '
-        if window.control_id != '' and window.control_id != None:
-            window_props += 'control_id="' + str(window.control_id) + '", '
+        if window.name:
+            window_props += 'name="{}", '.format(window.name)
+        if window.class_name:
+            window_props += 'class_name="{}", '.format(window.class_name)
+        if window.control_id:
+            window_props += 'control_id="{}", '.format(window.control_id)
         if window_props == '':
             if self.comboBox.currentText() == 'uia':
-                if window.control_type != '' and window.control_type != None:
-                    window_props += 'control_type="' + str(window.control_type) + '", '
-                if window.auto_id != '' and window.auto_id != None:
-                    window_props += 'auto_id="' + str(window.auto_id) + '", '
+                if window.control_type:
+                    window_props += 'control_type="{}", '.format(window.control_type)
+                if window.auto_id:
+                    window_props += 'auto_id="{}", '.format(window.auto_id)
                 if window_props == '':
                     window_props = 'cannot find window by name, class_name, control_id, control_type or auto_id, try other props'
                 else:
@@ -583,21 +583,21 @@ class MyWindow(QWidget):
                 window_props = 'cannot find control by name, class_name or control_id, try other props'
         else:
             window_props = window_props[:-2]
-        command+= '.window(' + window_props + ', top_level_only=False)'
+        command+= '.window({}, top_level_only=False)'.format(window_props)
         for ctrl in path[::-1]:
             ctrl_props=''
-            if ctrl.name != '' and ctrl.name != None:
-                ctrl_props += 'name="' + str(ctrl.name) + '", '
-            if ctrl.class_name != '' and ctrl.class_name != None:
-                ctrl_props += 'class_name="' + str(ctrl.class_name) + '", '
-            if ctrl.control_id != '' and ctrl.control_id != None:
-                ctrl_props += 'control_id="' + str(ctrl.control_id) + '", '
+            if ctrl.name:
+                ctrl_props += 'name="{}", '.format(ctrl.name)
+            if ctrl.class_name:
+                ctrl_props += 'class_name="{}", '.format(ctrl.class_name)
+            if ctrl.control_id:
+                ctrl_props += 'control_id="{}", '.format(ctrl.control_id)
             if ctrl_props == '':
                 if self.comboBox.currentText() == 'uia':
-                    if ctrl.control_type != '' and ctrl.control_type != None:
-                        ctrl_props += 'control_type="' + str(ctrl.control_type) + '", '
-                    if ctrl.auto_id != '' and ctrl.auto_id != None:
-                        ctrl_props += 'auto_id="' + str(ctrl.auto_id) + '", '
+                    if ctrl.control_type:
+                        ctrl_props += 'control_type="{}", '.format(ctrl.control_type)
+                    if ctrl.auto_id:
+                        ctrl_props += 'auto_id="{}", '.format(ctrl.auto_id)
                     if ctrl_props == '':
                         ctrl_props = 'cannot find control by name, class_name, control_id, control_type or auto_id, try other props'
                     else:
@@ -606,14 +606,14 @@ class MyWindow(QWidget):
                     ctrl_props = 'cannot find control by name, class_name or control_id, try other props'
             else:
                 ctrl_props = ctrl_props[:-2]
-            command+= '.by(' + ctrl_props + ')'
+            command+= '.by({})'.format(ctrl_props)
         command+= '.' + method
         if ret == 'execute':
             self.edit.append(command + '\n')
         elif ret == 'print':
-            self.edit.append('print(' + command + ')\n')
+            self.edit.append('print({})\n'.format(command))
         elif ret == 'check':
-            self.edit.append('flag_{} = '.format(self.flags) + command + '\n')
+            self.edit.append('flag_{} = {}\n'.format(self.flags, command))
             self.flags += 1
     
     def closeEvent(self, event):
