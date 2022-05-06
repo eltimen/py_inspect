@@ -1073,7 +1073,7 @@ class MyTreeModel(QStandardItemModel):
             self.__get_next(child, child_item)
 
     def __node_name(self, element_info):
-        if 'uia' == self.backend:
+        if self.backend in ('uia', 'wpf'):
             return '%s "%s" (%s)' % (str(element_info.control_type),
                                      str(element_info.name),
                                      id(element_info))
@@ -1123,8 +1123,18 @@ class MyTreeModel(QStandardItemModel):
             ['top_level_parent', str(element_info.top_level_parent)]
         ] if (self.backend == 'uia') else []
 
+        props_wpf = [
+            ['auto_id', str(element_info.auto_id)],
+            ['control_type', str(element_info.control_type)],
+            ['framework_id', str(element_info.framework_id)],
+            ['runtime_id', str(element_info.runtime_id)],
+            ['parent', str(element_info.parent)],
+            ['top_level_parent', str(element_info.top_level_parent)]
+        ] if (self.backend == 'wpf') else []
+
         props.extend(props_uia)
         props.extend(props_win32)
+        props.extend(props_wpf)
         node_dict = {self.__node_name(element_info): props}
         self.props_dict.update(node_dict)
         self.info_dict.update({self.__node_name(element_info): element_info})
