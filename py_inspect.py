@@ -454,11 +454,13 @@ class MyWindow(QWidget):
         self.processComboBox = AutocompletionComboBox()
         self.processComboBox.setEnabled(False)
         self.processComboBox.setMaxVisibleItems(30)
-        self.__init_process_list_combobox()
 
         self.processConnectButton = QPushButton("Connect")
         self.processConnectButton.setEnabled(False)
         self.processConnectButton.clicked.connect(lambda: self.__initialize_calc(_backend='wpf'))
+
+        self.processComboBox.currentIndexChanged.connect(self.on_process_selected)
+        self.__init_process_list_combobox()
 
         # Add top widgets to main window
         self.grid_tree = QGridLayout()
@@ -490,11 +492,16 @@ class MyWindow(QWidget):
         self.restoreGeometry(geometry)
 
     def __init_process_list_combobox(self):
+        self.processComboBox.clear()
         process_list = []
         for proc in psutil.process_iter():
             process_string = '{} ({})'.format(proc.name(), proc.pid)
             process_list.append(process_string)
             self.processComboBox.addItem(process_string, proc.pid)
+
+    def on_process_selected(self, index):
+        pid = self.processComboBox.itemData(index)
+        self.processConnectButton.setText('Connect to {}'.format(pid))
 
     def __initialize_calc(self, _backend='uia'):
         if _backend != 'wpf':
@@ -513,6 +520,7 @@ class MyWindow(QWidget):
         self.current_elem_wrapper = None
         self.tree_view.setModel(None)
         self.table_view.setModel(None)
+        self.tree_model = None
 
         if backend == 'wpf':
             self.processComboBox.setEnabled(True)
@@ -672,7 +680,10 @@ class MyWindow(QWidget):
     # Actions
     def __refresh(self):
         self.current_elem_wrapper = None
-        self.__initialize_calc(str(self.comboBox.currentText()))
+        if self.tree_model is not None:
+            self.__initialize_calc(str(self.comboBox.currentText()))
+        if str(self.comboBox.currentText()) == 'wpf':
+            self.__init_process_list_combobox()
 
     def __default(self):
         # TODO add write method?
