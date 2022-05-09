@@ -1124,6 +1124,7 @@ class MyTreeModel(QStandardItemModel):
         ] if (self.backend == 'uia') else []
 
         props_wpf = [
+            ['value', str(element_info.value)],
             ['auto_id', str(element_info.auto_id)],
             ['control_type', str(element_info.control_type)],
             ['framework_id', str(element_info.framework_id)],
